@@ -107,33 +107,16 @@ def run_program(program):
         if stmt["type"] == "let":
             value = eval_expr(stmt["value"], env)
             env[stmt["name"]] = value
+        
+        if stmt["type"] == "del":
+            del env[stmt["name"]]
             
         elif stmt["type"] == "print":
             value = eval_expr(stmt["value"], env)
             print(value)
-    # print(env)
+    print(env)
 
 # eval_expr({'type': 'binary', 'operator': '-', 'left': {'type': 'binary', 'operator': '+', 'left': {'type': 'binary', 'operator': '+', 'left': {'type': 'number', 'value': 10}, 'right': {'type': 'number', 'value': 5}}, 'right': {'type': 'number', 'value': 'x'}}, 'right': {'type': 'number', 'value': 1}}, {'x': 3})
-
-
-import time
-
-def benchmark(code, iterations=1000):
-    # Сначала "прогреем" (опционально, если в будущем будет JIT или кэш)
-    for _ in range(10):
-        run_program(code)
-
-    start = time.perf_counter()
-    for _ in range(iterations):
-        run_program(code)
-    end = time.perf_counter()
-
-    total = end - start
-    avg = total / iterations
-    print(f"Total: {total:.6f} sec")
-    print(f"Average per run: {avg * 1_000_000:.2f} µs")
-
-
 
 # code = """
 # let x = 2 + 2 * 2;
@@ -144,5 +127,3 @@ def benchmark(code, iterations=1000):
 
 # run_program(code)
 # benchmark(code)
-
-
