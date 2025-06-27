@@ -33,13 +33,14 @@ def lexer(code):
     pos = 0
     wordBuff = ""
     isStr = False
+    isComment = False
     codelen = len(code)
 
     while pos < codelen:
         ch = code[pos]
         nextch = code[pos+1] if pos+1 < codelen else " "
     
-        if ch.isspace() and isStr == False:   
+        if ch.isspace() and isStr == False:
             pos += 1
             continue
 
@@ -86,10 +87,12 @@ def lexer(code):
                 result.append((SPECIAL_CHARS["!="], "!="))
                 pos += 2
                 continue
+            elif ch == "/" and nextch == "/":
+                while code[pos] != "\n": pos += 1
             else:
                 result.append((SPECIAL_CHARS[ch], ch))
                 wordBuff = ""
-        
+
         else:
             raise Exception(f"Unknown character: {ch}")
     
@@ -97,5 +100,6 @@ def lexer(code):
     return result
 
 # print(lexer("""
-
+# // print("hello");
+# print("world!");
 # """))
