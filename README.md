@@ -5,7 +5,7 @@ MyPL is a minimal interpreted programming language built in pure Python. It's de
 ## Example
 
 let x = 2 + 2 * 2;
-print(x);  # Output: 6
+print(x);  // Output: 6
 
 ## Usage
 
