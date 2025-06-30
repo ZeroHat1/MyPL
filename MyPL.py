@@ -4,11 +4,11 @@ import time
 
 def benchmark(code, iterations=1000):
     for _ in range(10):
-        interpreter.run_program(code)
+        interpreter.init_program(code)
 
     start = time.perf_counter()
     for _ in range(iterations):
-        interpreter.run_program(code)
+        interpreter.init_program(code)
     end = time.perf_counter()
 
     total = end - start
@@ -22,10 +22,15 @@ p.add_argument('--benchmark', action='store_true')
 
 args = p.parse_args()
 
-with open(args.run, 'r', encoding='utf-8') as file:
+if args.run == None: 
+    file = "examples/hello_world.mypl"
+else:
+    file = args.run
+
+with open(file, 'r', encoding='utf-8') as file:
     code = file.read()
 
 if args.benchmark:
     benchmark(code)
 else:
-    interpreter.run_program(code)
+    interpreter.init_program(code)
