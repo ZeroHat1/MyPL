@@ -2,12 +2,15 @@ from re import sub
 
 KEY_WORDS = {
     "let": "LET",
+    "upd": "UPD",
+    "del": "DEL",
     "for": "FOR",
     "while": "WHILE",
     "if": "IF",
     "else": "ELSE",
     "func": "FUNC",
-    "print": "PRINT"
+    "print": "PRINT",
+    "println": "PRINTLN"
 }
 
 SPECIAL_CHARS = {
@@ -33,7 +36,6 @@ def lexer(code):
     pos = 0
     wordBuff = ""
     isStr = False
-    isComment = False
     codelen = len(code)
 
     while pos < codelen:
@@ -100,6 +102,8 @@ def lexer(code):
     return result
 
 # print(lexer("""
-# // print("hello");
-# print("world!");
+# while(x < 10){
+#     print(x);
+#     let x = x + 1;
+# }
 # """))
