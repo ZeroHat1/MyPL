@@ -1,10 +1,15 @@
-precedence = {
-    '+': 1,
-    '-': 1,
-    '*': 2,
-    '/': 2
+PRECEDENCE = {
+    "==": 0,
+    "!=": 0,
+    "<": 0,
+    ">": 0,
+    "<=": 0,
+    ">=": 0,
+    "+": 1,
+    "-": 1,
+    "*": 2,
+    "/": 2
 }
-import pprint
 
 def traverse_dict(d, path=None, filter=()):
     if path is None:
@@ -22,43 +27,6 @@ def traverse_dict(d, path=None, filter=()):
 
     return results
 
-def recursive_eval_expr(tokens, env):
-    # print("tokens:", tokens)
-    lower = None
-
-    for i in range(len(tokens) - 1, -1, -1):
-        if tokens[i] in precedence and precedence[tokens[i]] <= 1:
-            lower = i
-            break
-    if lower == None:
-        for i in range(len(tokens) - 1, -1, -1):
-            if tokens[i] in precedence and precedence[tokens[i]] <= 2:
-                lower = i
-                break
-
-    if lower is not None and len(tokens) >= 1:
-        current = {
-            "type": "binary",
-            "operator": tokens[lower],
-            "left": recursive_eval_expr(tokens[:lower], env),
-            "right": recursive_eval_expr(tokens[lower + 1:], env)
-        }
-        return current
-    elif len(tokens) == 1:
-        if type(tokens[0]) == int:
-            current = {
-                "type": "number",
-                "value": tokens[0]
-            }
-        else:
-            current = {
-                "type": "identifier",
-                "value": env[tokens[0]]
-            }
-        return current
-    else:
-        raise ValueError("Invalid expression: empty or invalid token list.", tokens)
-
 def eval_expr(node, env):
     if node["type"] == "number":
         return node["value"]
@@ -67,54 +35,102 @@ def eval_expr(node, env):
     elif node["type"] == "string":
         return node["value"]
     elif node["type"] == "binary":
-        operators = traverse_dict(node, filter=("operator"))
-        operators = operators[::-1]
         values = traverse_dict(node, filter=("value"))
-        tokens = []
-
+        operators = traverse_dict(node, filter=("operator"))[::-1]
+        infix = []
+        
         for i in range(0, len(values)-1):
-            tokens.append(values[i])
-            tokens.append(operators[i])
-        tokens.append(values[-1])
-    
-        node = recursive_eval_expr(tokens, env)
+            infix.append(values[i])
+            infix.append(operators[i])
+        infix.append(values[-1])
 
-        valBuff = 0
+        stack = []
+        output = []
 
-        left = eval_expr(node["left"], env)
-        right = eval_expr(node["right"], env)
-        op = node["operator"]
+        for i in infix:
+            if i in PRECEDENCE:
+                if len(stack) == 0:
+                    stack.append(i)
+                else:
+                    if PRECEDENCE[stack[-1]] >= PRECEDENCE[i]:
+                        for j in range(len(stack)-1, -1, -1):
+                            if PRECEDENCE[stack[j]] >= PRECEDENCE[i]:
+                                output.append(stack[j])
+                                stack.pop(j)
+                        stack.append(i)
+                    else:
+                        stack.append(i)
+            else:
+                if type(i) == int:
+                    output.append(i)
+                else:
+                    output.append(env[i])
+        output += stack[::-1]
+        stack.clear()
 
-        if op == "+": valBuff = left + right
-        elif op == "-": valBuff = left - right
-        elif op == "*": valBuff = left * right
-        elif op == "/": valBuff = left / right
-
-        return valBuff
+        for val in output:
+            if val in PRECEDENCE:
+                if val == "+": 
+                    stack[-1] = stack[-2] + stack[-1]
+                    stack.pop(-2)
+                elif val == "-":
+                    stack[-1] = stack[-2] - stack[-1]
+                    stack.pop(-2)
+                elif val == "*":
+                    stack[-1] = stack[-2] * stack[-1]
+                    stack.pop(-2)
+                elif val == "/":
+                    stack[-1] = stack[-2] / stack[-1]
+                    stack.pop(-2)
+                elif val == ">":
+                    stack[-1] = stack[-2] > stack[-1]
+                    stack.pop(-2)
+                elif val == "<":
+                    stack[-1] = stack[-2] < stack[-1]
+                    stack.pop(-2)
+                elif val == ">=":
+                    stack[-1] = stack[-2] >= stack[-1]
+                    stack.pop(-2)
+                elif val == "<=":
+                    stack[-1] = stack[-2] <= stack[-1]
+                    stack.pop(-2)
+                elif val == "==":
+                    stack[-1] = stack[-2] == stack[-1]
+                    stack.pop(-2)
+                elif val == "!=":
+                    stack[-1] = stack[-2] != stack[-1]
+                    stack.pop(-2)
+            else:
+                stack.append(val)
+        
+        return stack[-1]
 
 import parser
 import lexer
 
-def run_program(program):
-    env = {}
-
-    tokens = lexer.lexer(program)
-    # print(tokens)
-    statements = parser.parse_program(tokens)
-    # pprint.pprint(statements)
-
+def run_program(statements, env={}):
     for stmt in statements:
         if stmt["type"] == "let":
             value = eval_expr(stmt["value"], env)
             env[stmt["name"]] = value
-        
-        if stmt["type"] == "del":
+        elif stmt["type"] == "del":
             del env[stmt["name"]]
-            
         elif stmt["type"] == "print":
             value = eval_expr(stmt["value"], env)
-            print(value)
-    print(env)
+            print(value, end="")
+        elif stmt["type"] == "println":
+            value = eval_expr(stmt["value"], env)
+            print(value, end="\n")
+        elif stmt["type"] == "while":
+            while eval_expr(stmt["condition"], env):
+                run_program(stmt["body"], env)
+
+def init_program(program):
+    tokens = lexer.lexer(program)
+    statements = parser.parse_program(tokens)
+
+    run_program(statements)
+
 
 # eval_expr({'type': 'binary', 'operator': '-', 'left': {'type': 'binary', 'operator': '+', 'left': {'type': 'binary', 'operator': '+', 'left': {'type': 'number', 'value': 10}, 'right': {'type': 'number', 'value': 5}}, 'right': {'type': 'number', 'value': 'x'}}, 'right': {'type': 'number', 'value': 1}}, {'x': 3})
 
@@ -123,7 +139,4 @@ def run_program(program):
 # print(x);
 # """
 
-
-
 # run_program(code)
-# benchmark(code)
