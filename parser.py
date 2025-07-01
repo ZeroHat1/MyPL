@@ -20,6 +20,8 @@ def parse_expression(tokens):
         current = {"type": "number", "value": int(token[1])}
     elif token[0] == "IDENT":
         current = {"type": "identifier", "value": token[1]}
+    elif token[0] == "BOOL":
+        current = {"type": "bool", "value": token[1]}
     else:
         raise Exception("Expected number or identifier")
 
@@ -35,6 +37,8 @@ def parse_expression(tokens):
                 right = {"type": "number", "value": int(next_token[1])}
             elif next_token[0] == "IDENT":
                 right = {"type": "identifier", "value": next_token[1]}
+            elif next_token[0] == "BOOL":
+                right = {"type": "bool", "value": next_token[1]}
             else:
                 raise Exception("Expected number or identifier after operator")
         
@@ -50,7 +54,7 @@ def parse_expression(tokens):
     return current
 
 def parse_let(tokens, pos):
-    if tokens[pos][0] != "LET":
+    if tokens[pos][0] != "LET" and tokens[pos][0] != "UPD":
         raise Exception("Expected LET")
     pos += 1
 
@@ -166,16 +170,11 @@ def parse_while(tokens, pos):
     body = parse_program(expr_tokens)
     pos += 1
 
-    if tokens[pos][0] != "ELSE":
-        pos += 1
-        
-
-    else:
-        return {
-                "type": "if",
-                "condition": condition,
-                "body": body
-            }, pos
+    return {
+            "type": "while",
+            "condition": condition,
+            "body": body
+        }, pos
         
 
 def parse_if(tokens, pos):
@@ -210,20 +209,41 @@ def parse_if(tokens, pos):
             depth -= 1
 
     body = parse_program(expr_tokens)
-    pos += 1
-    
-    return {
-            "type": "while",
+    stmt = {
+            "type": "if",
             "condition": condition,
             "body": body
-        }, pos
+        }
 
+    pos += 1
+    if tokens[pos][0] == "ELSE":
+        pos += 1
+        if tokens[pos][0] != "LBRACE":
+            raise Exception("Expected LBRACE")
+        pos += 1
+        depth = 1
+
+        expr_tokens.clear()
+        while depth > 0:
+            expr_tokens.append(tokens[pos])
+            pos += 1
+
+            if tokens[pos][0] == "LBRACE":
+                depth += 1
+            elif tokens[pos][0] == "RBRACE":
+                depth -= 1
+        else_body = parse_program(expr_tokens)
+        stmt["else_body"] = else_body
+    pos += 1
+
+    return stmt, pos
+
+from pprint import pprint
 def parse_program(tokens):
     pos = 0
     statements = []
 
     while pos < len(tokens):
-        # print(tokens)
         token = tokens[pos]
 
         if token[0] == "LET":
@@ -244,9 +264,13 @@ def parse_program(tokens):
         elif token[0] == "WHILE":
             stmt, pos = parse_while(tokens, pos)
             statements.append(stmt)
+        elif token[0] == "IF":
+            stmt, pos = parse_if(tokens, pos)
+            statements.append(stmt)
         else:
             raise Exception(f"Unknown statement type: {token[0]}")
 
+    pprint(statements)
     return statements
     
 # print(parse_program([('WHILE', 'while'), ('LPAREN', '('), ('IDENT', 'x'), ('LT', '<'), ('NUMBER', '10'), ('RPAREN', ')'), ('LBRACE', '{'), ('PRINT', 'print'), ('LPAREN', '('), ('IDENT', 'x'), ('RPAREN', ')'), ('SEMICOLON', ';'), ('LET', 'let'), ('IDENT', 'x'), ('EQUAL', '='), ('IDENT', 'x'), ('PLUS', '+'), ('NUMBER', '1'), ('SEMICOLON', ';'), ('RBRACE', '}')]))
