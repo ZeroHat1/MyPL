@@ -31,6 +31,11 @@ SPECIAL_CHARS = {
     "<": "LT"
 }
 
+BOOL_TYPE = {
+    "true": "TRUE",
+    "false": "FALSE"
+}
+
 def lexer(code):
     result = []
     pos = 0
@@ -55,6 +60,8 @@ def lexer(code):
                 # print("Space")
                 if wordBuff in KEY_WORDS:
                     result.append((KEY_WORDS[wordBuff], wordBuff))
+                elif wordBuff in BOOL_TYPE:
+                    result.append(("BOOL", wordBuff))
                 else:
                     result.append(("IDENT", wordBuff))
                 wordBuff = ""
