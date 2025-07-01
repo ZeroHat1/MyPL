@@ -34,6 +34,8 @@ def eval_expr(node, env):
         return env[node["value"]]
     elif node["type"] == "string":
         return node["value"]
+    elif node["type"] == "bool":
+        return node["value"]
     elif node["type"] == "binary":
         values = traverse_dict(node, filter=("value"))
         operators = traverse_dict(node, filter=("operator"))[::-1]
@@ -61,10 +63,11 @@ def eval_expr(node, env):
                     else:
                         stack.append(i)
             else:
-                if type(i) == int:
-                    output.append(i)
-                else:
+                if i in env:
                     output.append(env[i])
+                else:
+                    output.append(i)
+
         output += stack[::-1]
         stack.clear()
 
@@ -105,7 +108,7 @@ def eval_expr(node, env):
         
         return stack[-1]
 
-import parser
+import mypl_parser
 import lexer
 
 def run_program(statements, env={}):
@@ -124,10 +127,15 @@ def run_program(statements, env={}):
         elif stmt["type"] == "while":
             while eval_expr(stmt["condition"], env):
                 run_program(stmt["body"], env)
+        elif stmt["type"] == "if":
+            if eval_expr(stmt["condition"], env):
+                run_program(stmt["body"], env)
+            else:
+                run_program(stmt["else_body"], env)
 
 def init_program(program):
     tokens = lexer.lexer(program)
-    statements = parser.parse_program(tokens)
+    statements = mypl_parser.parse_program(tokens)
 
     run_program(statements)
 
