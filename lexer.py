@@ -9,6 +9,7 @@ KEY_WORDS = {
     "if": "IF",
     "else": "ELSE",
     "func": "FUNC",
+    "return": "RETURN",
     "print": "PRINT",
     "println": "PRINTLN"
 }
@@ -109,8 +110,5 @@ def lexer(code):
     return result
 
 # print(lexer("""
-# while(x < 10){
-#     print(x);
-#     let x = x + 1;
-# }
+# hello(1+2, a);
 # """))
