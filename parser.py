@@ -12,6 +12,8 @@ OPERATORS = (
 )
 
 def parse_expression(tokens):
+    print(tokens)
+
     current = None
     pos = 0
     token = tokens[pos]
@@ -20,6 +22,8 @@ def parse_expression(tokens):
         current = {"type": "number", "value": int(token[1])}
     elif token[0] == "IDENT":
         current = {"type": "identifier", "value": token[1]}
+    elif token[0] == "STRING":
+        current = {"type": "string", "value": token[1]}
     elif token[0] == "BOOL":
         current = {"type": "bool", "value": token[1]}
     else:
@@ -190,6 +194,7 @@ def parse_if(tokens, pos):
     while tokens[pos][0] != "RPAREN":
         expr_tokens.append(tokens[pos])
         pos += 1
+    # print(expr_tokens)
     condition = parse_expression(expr_tokens)
     pos += 1
 
@@ -238,7 +243,98 @@ def parse_if(tokens, pos):
 
     return stmt, pos
 
-from pprint import pprint
+def parse_func(tokens, pos):
+    if tokens[pos][0] != "FUNC":
+        raise Exception("Expected FUNC")
+    pos += 1
+
+    if tokens[pos][0] != "IDENT":
+        raise Exception("Expected NAME")
+    name = tokens[pos][1]
+    pos += 1
+
+    if tokens[pos][0] != "LPAREN":
+        raise Exception("Expected LPAREN")
+    pos += 1
+
+    params = []
+    while tokens[pos][0] != "RPAREN":
+        if tokens[pos][0] == "IDENT":
+            params.append(tokens[pos][1])
+        pos += 1
+        
+        if tokens[pos][0] not in ("COMMA", "RPAREN"):
+            if tokens[pos][0] == "IDENT":
+                raise Exception("Expected COMMA")
+            else:
+                raise Exception("Expected RPAREN")
+        
+        if tokens[pos][0] == "RPAREN":
+            break
+        pos += 1
+    pos += 1
+
+    if tokens[pos][0] != "LBRACE":
+        raise Exception("Expected LBARCE")
+    pos += 1
+
+    depth = 1
+    expr_tokens = []
+    while depth > 0:
+        expr_tokens.append(tokens[pos])
+        pos += 1
+
+        if tokens[pos][0] == "LBRACE":
+            depth += 1
+        elif tokens[pos][0] == "RBRACE":
+            depth -= 1
+
+    body = parse_program(expr_tokens)
+    pos += 1
+
+    return {
+        "type": "function-def",
+        "name": name,
+        "params": params,
+        "body": body
+    }, pos
+
+def parse_call(tokens, pos):
+    if tokens[pos][0] != "IDENT":
+        raise Exception("Expected IDENT")
+    name = tokens[pos][1]
+    pos += 1
+
+    if tokens[pos][0] != "LPAREN":
+        raise Exception("Expected LPAREN")
+    pos += 1
+
+    args = []
+    token_buff = []
+    while tokens[pos][0] != "RPAREN":
+        token_buff.clear()
+        while tokens[pos][0] != "COMMA":
+            if tokens[pos][0] == "RPAREN":
+                pos -= 1
+                break
+            token_buff.append(tokens[pos])
+            pos += 1
+        pos += 1
+        args.append(parse_expression(token_buff))
+    
+    pos += 1
+
+    if tokens[pos][0] != "SEMICOLON":
+        raise Exception("Expected semicolon after identifier")
+    pos += 1
+
+    return {
+        "type": "call",
+        "name": name,
+        "args": args
+    }, pos
+
+# from pprint import pprint
 def parse_program(tokens):
     pos = 0
     statements = []
@@ -267,10 +363,19 @@ def parse_program(tokens):
         elif token[0] == "IF":
             stmt, pos = parse_if(tokens, pos)
             statements.append(stmt)
+        elif token[0] == "FUNC":
+            stmt, pos = parse_func(tokens, pos)
+            statements.append(stmt)
+        elif token[0] == "IDENT":
+            stmt, pos = parse_call(tokens, pos)
+            statements.append(stmt)
         else:
             raise Exception(f"Unknown statement type: {token[0]}")
 
-    pprint(statements)
+    # pprint(statements)
     return statements
     
-# print(parse_program([('WHILE', 'while'), ('LPAREN', '('), ('IDENT', 'x'), ('LT', '<'), ('NUMBER', '10'), ('RPAREN', ')'), ('LBRACE', '{'), ('PRINT', 'print'), ('LPAREN', '('), ('IDENT', 'x'), ('RPAREN', ')'), ('SEMICOLON', ';'), ('LET', 'let'), ('IDENT', 'x'), ('EQUAL', '='), ('IDENT', 'x'), ('PLUS', '+'), ('NUMBER', '1'), ('SEMICOLON', ';'), ('RBRACE', '}')]))
+# print(parse_program(
+#     [('IDENT', 'hello'), ('LPAREN', '('), ('NUMBER', '1'), ('PLUS', '+'), ('NUMBER', '2'), ('COMMA', ','), ('IDENT', 'a'), ('RPAREN', ')'), ('SEMICOLON', ';')]
+# ))
+# print(parse_expression([('IDENT', 'hello')]))
