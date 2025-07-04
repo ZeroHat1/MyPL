@@ -111,6 +111,63 @@ def eval_expr(node, env):
 import mypl_parser
 import lexer
 
+def resolve_variable(env, outer_env, node):
+    # print("\n\n")
+    # print("Node:", node)
+    # print(type(node))
+    values = []
+    if isinstance(node, list):
+        for n in node:
+            # print(n)
+            values += traverse_dict(n, filter=("value"))
+    else:
+        values = traverse_dict(node, filter=("value"))
+    resolve_env = {}
+
+    # print(values)
+    for val in values:
+        if val in env.keys():
+            resolve_env[val] = env[val]
+        elif val in outer_env.keys():
+            resolve_env[val] = outer_env[val]
+    
+    # print(env)
+    # print(outer_env)
+    # print(resolve_env)
+    # print("\n\n")
+    return resolve_env
+
+def run_function(statements, outer_env={}, env={}):
+    for stmt in statements:
+        if stmt["type"] == "let":
+            value = eval_expr(stmt["value"], resolve_variable(env, outer_env, stmt["value"]))
+            env[stmt["name"]] = value
+        elif stmt["type"] == "del":
+            del env[stmt["name"]]
+        elif stmt["type"] == "print":
+            value = eval_expr(stmt["value"], resolve_variable(env, outer_env, stmt["value"]))
+            print(value, end="")
+        elif stmt["type"] == "println":
+            value = eval_expr(stmt["value"], resolve_variable(env, outer_env, stmt["value"]))
+            print(value, end="\n")
+        elif stmt["type"] == "while":
+            while eval_expr(stmt["condition"], resolve_variable(env, outer_env, stmt["condition"])):
+                run_program(stmt["body"], resolve_variable(env, outer_env, stmt["body"]))
+        elif stmt["type"] == "if":
+            if eval_expr(stmt["condition"], resolve_variable(env, outer_env, stmt["condition"])):
+                run_program(stmt["body"], resolve_variable(env, outer_env, stmt["body"]))
+            else:
+                run_program(stmt["else_body"], resolve_variable(env, outer_env, stmt["else_body"]))
+        # elif stmt["type"] == "function-def":
+        #     env[stmt["name"]] = {"type": "function", "params": stmt["params"], "body": stmt["body"]}
+        elif stmt["type"] == "call":
+            params = env[stmt["name"]]["params"]
+            func_env = {}
+            for i, val in enumerate(params):
+                func_env[val] = eval_expr(stmt["args"][i], resolve_variable(env, outer_env, stmt["args"][i]))
+
+            run_function(env[stmt["name"]]["body"], outer_env=env, env=func_env)
+
 def run_program(statements, env={}):
     for stmt in statements:
         if stmt["type"] == "let":
@@ -132,6 +189,19 @@ def run_program(statements, env={}):
                 run_program(stmt["body"], env)
             else:
                 run_program(stmt["else_body"], env)
+        elif stmt["type"] == "function-def":
+            env[stmt["name"]] = {"type": "function", "params": stmt["params"], "body": stmt["body"]}
+        elif stmt["type"] == "call":
+            params = env[stmt["name"]]["params"]
+            func_env = {}
+            for i, val in enumerate(params):
+                func_env[val] = eval_expr(stmt["args"][i], env)
+
+            run_function(env[stmt["name"]]["body"], outer_env=env, env=func_env)
+
+    # print(env)
+
+
 
 def init_program(program):
     tokens = lexer.lexer(program)
